@@ -5,7 +5,7 @@ import math
 import os
 
 infinite = float(-2 ** 31)
-
+result_path = "./result/cw_result.txt"
 
 def log_normalize(a):
     s = 0
@@ -152,15 +152,9 @@ def mle(train_path):  # 0B/1M/2E/3S
     with open(train_path, "r", encoding="utf-8")as f:
         data = f.read()
     tokens = data.split(' ')
-    # # 增加英文词训练集
-    # f = file('Englishword.train')
-    # data = f.read().decode('utf-8')
-    # f.close()
-    # tokens.extend(data.split(' '))
 
     # 开始训练
     last_q = 2
-    iii = 0
     old_progress = 0
     print('进度：')
     for k, token in enumerate(tokens):
@@ -211,10 +205,10 @@ def list_write(f, v):
     f.write('\n')
 
 
-def save_parameter(pi, A, B, para_path):
-    pi_path = os.path.join(para_path, "pi.txt")
-    a_path = os.path.join(para_path, "A.txt")
-    b_path = os.path.join(para_path, "B.txt")
+def save_parameter(pi, A, B, para_dir):
+    pi_path = os.path.join(para_dir, "pi.txt")
+    a_path = os.path.join(para_dir, "A.txt")
+    b_path = os.path.join(para_dir, "B.txt")
     with open(pi_path, "w", encoding="utf-8")as f_pi, \
             open(a_path, "w", encoding="utf-8")as f_A, \
             open(b_path, "w", encoding="utf-8")as f_B:
@@ -280,31 +274,34 @@ def viterbi(pi, A, B, o):
 def segment(sentence, decode):
     N = len(sentence)
     i = 0
-    while i < N:  # B/M/E/S
-        if decode[i] == 0 or decode[i] == 1:  # Begin
-            j = i + 1
-            while j < N:
-                if decode[j] == 2:
-                    break
-                j += 1
-            print(sentence[i:j + 1], "|", )
-            i = j + 1
-        elif decode[i] == 3 or decode[i] == 2:  # single
-            print(sentence[i:i + 1], "|", )
-            i += 1
-        else:
-            print('Error:', i, decode[i])
-            i += 1
+    with open(result_path, "a+", encoding="utf-8")as f:
+        while i < N:  # B/M/E/S
+            if decode[i] == 0 or decode[i] == 1:  # Begin
+                j = i + 1
+                while j < N:
+                    if decode[j] == 2:
+                        break
+                    j += 1
+                print(sentence[i:j + 1], "|", )
+                f.write("{} ".format(sentence[i:j + 1]))
+                i = j + 1
+            elif decode[i] == 3 or decode[i] == 2:  # single
+                print(sentence[i:i + 1], "|", )
+                f.write("{} ".format(sentence[i:i + 1]))
+                i += 1
+            else:
+                print('Error:', i, decode[i])
+                i += 1
 
 
-def train(train_path, para_path):
+def train(train_path, para_dir):
     """
     ：:param train_path:训练集文本位置
-    ：:param para_path:参数存放目录
-    :return: pi,A,B三个参数存放的路径
+    ：:param para_dir:参数存放目录
+    ：:return: pi,A,B三个参数存放的路径
     """
     pi, A, B = mle(train_path)
-    return save_parameter(pi, A, B, para_path)
+    return save_parameter(pi, A, B, para_dir)
 
 
 def seg(data_path, pi_path, a_path, b_path):
@@ -313,3 +310,7 @@ def seg(data_path, pi_path, a_path, b_path):
         data = f.read()
     decode = viterbi(pi, A, B, data)
     segment(data, decode)
+
+if __name__ == '__main__':
+    train_path = "../data/trainset/test.txt"
+    train(train_path,"./para")
