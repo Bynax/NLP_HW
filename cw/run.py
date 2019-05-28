@@ -8,30 +8,31 @@ import os
 train_set = "../data/trainset/train_cws.txt"  # 训练文本位置
 dev_set = "../data/devset/val_cws.txt"  # 验证文本位置
 test_set = "../data/testset1/test_cws1.txt"  # 开发文本位置
+test2_set = "../data/devset/test2.txt"
 para_dir = "./para"  # 参数存放位置
 result_dir = "./result"
 
 if __name__ == '__main__':
     """-------------------train-----------------------"""
-    # train_tokens = preprocess.read_text_file(train_set)
-    # model.train(train_tokens, para_dir=para_dir)
+    train_tokens = preprocess.read_text_file(train_set).split(" ")
+    model.train(train_tokens, para_dir=para_dir)
     """-------------------segment-----------------------"""
-    # pi_path = os.path.join(para_dir, "pi.txt")
-    # a_path = os.path.join(para_dir, "A.txt")
-    # b_path = os.path.join(para_dir, "B.txt")
-    # result_path = os.path.join(result_dir,"result.txt")
-    # dev_text = preprocess.read_text_file(dev_set).replace(" ","")
-    # model.seg(dev_text,pi_path,a_path,b_path,result_path)
+    pi_path = os.path.join(para_dir, "pi.txt")
+    a_path = os.path.join(para_dir, "A.txt")
+    b_path = os.path.join(para_dir, "B.txt")
+    result_path = os.path.join(result_dir,"result.txt")
+    #dev_text = preprocess.read_text_file(dev_set).replace(" ","")
+    test2_text = preprocess.read_text_file(test2_set)
+    #model.seg(dev_text,pi_path,a_path,b_path,result_path)
+    model.seg(test2_text, pi_path, a_path, b_path, result_path)
 
     """-------------------evaluate-----------------------"""
-    result_path = os.path.join(result_dir,"result.txt")
-    resut_text = preprocess.process_text(preprocess.read_text_file(result_path,True))
-    dev_text = preprocess.process_text(preprocess.read_text_file(dev_set,True))
-    resut_text = "".join(resut_text).replace("  "," ")
-    dev_text = "".join(dev_text).replace("  "," ")
-    print(resut_text)
-    print(dev_text)
-    print(evaluate.evaluate(dev_text,resut_text))
+    # result_path = os.path.join(result_dir,"result.txt")
+    # resut_text = preprocess.process_text(preprocess.read_text_file(result_path,True))
+    # dev_text = preprocess.process_text(preprocess.read_text_file(dev_set,True))
+    # resut_text = "".join(resut_text).replace("  "," ")
+    # dev_text = "".join(dev_text).replace("  "," ")
+    # print(evaluate.evaluate(dev_text,resut_text))
 
 
 

@@ -3,6 +3,7 @@
 
 import math
 import os
+import numpy as np
 
 
 class Model(object):
@@ -30,15 +31,11 @@ class Model(object):
         :param tokens:词列表
         :return:pi,a,b:对应hmm中所训练的三个参数
         """
-        pi = [0] * 4  # npi[i]：i状态的个数
-        a = [[0] * 4 for x in range(4)]  # na[i][j]：从i状态到j状态的转移个数
-        b = [[0] * 65536 for x in range(4)]  # nb[i][o]：从i状态到o字符的个数
-        # with open(train_path, "r", encoding="utf-8")as f:
-        #     data = f.read()
-        # tokens = data.split(' ')
-
+        pi = np.zeros(4)  # npi[i]：i状态的个数
+        a = np.zeros((4, 4))  # na[i][j]：从i状态到j状态的转移个数
+        b = np.zeros((4, 65536))  # nb[i][o]：从i状态到o字符的个数
         # 开始训练
-        last_q = 2
+        last_q = 2  # 上一个状态 为计算A矩阵方便
         old_progress = 0
         print('进度：')
         for k, token in enumerate(tokens):
@@ -74,6 +71,8 @@ class Model(object):
             b[2][ord(token[n - 1])] += 1
             for i in range(1, n - 1):
                 b[1][ord(token[i])] += 1
+        b = b + 0.027
+        print(b[:, ord('表')])
         # 正则化
         cls.__log_normalize(pi)
         for i in range(4):
@@ -200,3 +199,10 @@ class Model(object):
         assert pi is not None and A is not None and B is not None  # ensure train has been exacute
         decode = cls.__viterbi(pi, A, B, data)
         cls.__segment(result_path, data, decode)
+
+
+if __name__ == '__main__':
+    b = [[0] * 2 for x in range(4)]
+    print(b)
+    c = np.zeros((4, 2))
+    print(c)
