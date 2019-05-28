@@ -15,34 +15,30 @@ class Preprocess(object):
     SPECIAL_SYMBOL_RE = re.compile(r'[^\w\s\u4e00-\u9fa5]+')  # 用以删除一些特殊符号
 
     @staticmethod
-    def read_text_file(text_file):
-        """读取文本文件,并返回由每行文本作为元素组成的list."""
+    def read_text_file(text_file, is_read_lines=False):
+        """
+        读取文本文件,并返回由每行文本作为元素组成的list
+        :param text_file: 文本位置
+        :param is_read_lines: 是否按行读取，True->list中每个元素为一行，False->list中每个元素为一个word
+        :return:
+        """
         with open(text_file, 'r', encoding='utf-8') as file:
-            lines = [line.strip() for line in file]
+            if is_read_lines:
+                lines = [line.strip() for line in file]
+            else:
+                lines = file.read().replace("  ", " ")
         return lines
 
     @staticmethod
-    def write_text_file(text_list, target_file):
-        """将文本列表写入目标文件
-        Args:
-            text_list: 列表，每个元素是一条文本
-            target_file: 字符串，写入目标文件路径
-        """
-        with open(target_file, 'w', encoding='utf-8') as writer:
-            for text in text_list:
-                writer.write(text + '\n')
-
-    @staticmethod
-    def del_blank_lines(sentences):
+    def __del_blank_lines(sentences):
         """删除句子列表中的空行，返回没有空行的句子列表
-
         Args:
             sentences: 字符串列表
         """
         return [s for s in sentences if s.split()]
 
     @staticmethod
-    def del_punctuation(sentence):
+    def __del_punctuation(sentence):
         """删除字符串中的中英文标点.
         Args:
             sentence: 字符串
@@ -52,16 +48,31 @@ class Preprocess(object):
         return re.sub(r'[%s]+' % punctuation, "", sent_no_en_punc)
 
     @classmethod
-    def del_special_symbol(cls, sentence):
+    def __del_special_symbol(cls, sentence):
         """删除句子中的乱码和一些特殊符号。"""
         return cls.SPECIAL_SYMBOL_RE.sub('', sentence)
 
     @classmethod
-    def del_english_word(cls, sentence):
+    def __del_english_word(cls, sentence):
         """删除句子中的英文字符"""
         return cls.LETTER_RE.sub('', sentence)
 
     @classmethod
-    def del_num_word(cls, sentence):
+    def __del_num_word(cls, sentence):
         """删除句子中的数字"""
         return cls.DIGIT_RE.sub('', sentence)
+
+    @classmethod
+    def process_text(cls, lines):
+        """
+        对文本进行预处理，包括删除空行、删除中英文标点、删除特殊字符、删除数字等
+        :param lines:按照行读取后的行list
+        :return: 处理后的文本
+        """
+        # 删除空行
+        lines = cls.__del_blank_lines(lines)
+        # 删除中英文标点
+        for index, line in enumerate(lines):
+            result = cls.__del_num_word(cls.__del_special_symbol(cls.__del_english_word(line)))
+            lines[index] = result
+        return lines

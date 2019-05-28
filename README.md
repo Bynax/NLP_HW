@@ -1,6 +1,13 @@
 ### <center>NLP HOMEWORK</center>
+- project structure:
+    - I divide this project into 3 parts:**CW** for cut words, **POS** for Part-of-Speech tagging and **NER** for  Named Entity Recognition . Every part is combined by the following four files:
+        - dataset:preprocess the dataset
+        - model:build a model
+    - evaluate: evaluate a model, calculate the accuracy,recall and F1_score
+        - run: run the part
 - CW
-
+    - model:HMM
+      - Parameter estimate:MLE
+      - Decode:viterbi algorithm
 - POS
-
 - NER

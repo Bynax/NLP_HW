@@ -11,7 +11,6 @@ class Evaluate(object):
     """
     度量模型，包括计算accruary、recall and F1_score
     """
-
     @classmethod
     def __cal_accurary(cls, reference_list, predict_list):
         """
@@ -20,14 +19,14 @@ class Evaluate(object):
         :return:返回准确率
         """
         # 切分中正确分词数/切分结果中所有分词数
+        total_ref_num = len(predict_list)
 
         correct_words = cls.__correct_words(reference_list, predict_list)
 
-        total_ref_num = len(reference_list)
         return correct_words / total_ref_num
 
-    @staticmethod
-    def __cal_recall(true_list, predict_list):
+    @classmethod
+    def __cal_recall(cls, reference_list, predict_list):
         """
         :param reference_list: 参考列表
         :param predict_list: 预测列表
@@ -35,7 +34,11 @@ class Evaluate(object):
         """
         # 切分结果中正确分词数/标准答案中所有分词数
 
-        pass
+        total_ref_num = len(reference_list)
+
+        correct_words = cls.__correct_words(reference_list, predict_list)
+
+        return correct_words / total_ref_num
 
     @staticmethod
     def __cal_f1(accuracy, recall):
@@ -57,25 +60,29 @@ class Evaluate(object):
         correct_num = 0
         index_predict = 0
         index_reference = 0
-        while reference_list and predict_list:
-            if predict_list[0] == reference_list[0]:  # match
+        index_lreference = 0
+        index_lpredict = 0
+        len_lreference = len(reference_list)
+        len_lpredict = len(predict_list)
+        while index_lreference < len_lreference and index_lpredict < len_lpredict:
+            if predict_list[index_lpredict] == reference_list[index_lreference]:  # match
                 correct_num += 1
-                index_predict += len(predict_list[0])
-                index_reference += len(reference_list[0])
-                predict_list.pop(0)
-                reference_list.pop(0)
+                index_predict += len(predict_list[index_lpredict])
+                index_reference += len(reference_list[index_lreference])
+                index_lpredict += 1
+                index_lreference += 1
             else:
                 if index_predict == index_reference:
-                    index_predict += len(predict_list[0])  # move
-                    index_reference += len(reference_list[0])
-                    predict_list.pop(0)
-                    reference_list.pop(0)
+                    index_predict += len(predict_list[index_lpredict])  # move
+                    index_reference += len(reference_list[index_lreference])
+                    index_lpredict += 1
+                    index_lreference += 1
                 elif index_predict < index_reference:
-                    index_predict += len(predict_list[0])
-                    predict_list.pop(0)
+                    index_predict += len(predict_list[index_lpredict])
+                    index_lpredict += 1
                 elif index_predict > index_reference:
-                    index_reference += len(reference_list[0][0])  # move
-                    reference_list.pop(0)
+                    index_reference += len(reference_list[index_lreference])  # move
+                    index_lreference += 1
         return correct_num
 
     @classmethod
@@ -85,7 +92,8 @@ class Evaluate(object):
         :param predict: 模型预测文本
         :return: 模型的accuracy/recall/F1_score
         """
-        assert len(reference) == len(predict)
+
+        assert len(reference.replace(" ", "")) == len(predict.replace(" ", ""))  # 要比较的字符串除空格外字数要相等
         reference_list = reference.split(" ")
         predict_list = predict.split(" ")
         accuracy = cls.__cal_accurary(reference_list, predict_list)
@@ -95,18 +103,18 @@ class Evaluate(object):
 
 
 if __name__ == '__main__':
-    # lines = p.read_text_file("../data/trainset/test.txt")
-    # # 删除空行
-    # lines = p.del_blank_lines(lines)
-    # for line in lines:
-    #     print(line)
-    # # 删除中英文标点
-    # for index, line in enumerate(lines):
-    #     result = p.del_num_word(p.del_special_symbol(p.del_english_word(line)))
-    #     lines[index] = result
-    #
-    # for line in lines:
-    #     print(line)
-    # lines.pop()
-    a = ["你好", "世界", "都", "很好", "呀", "呵呵呵"]
-    b = ["你好", "世界", "都很好", "呀", "呵呵呵"]
+    lines = p.read_text_file("../data/trainset/test.txt")
+
+    # 删除空行
+    lines = p.del_blank_lines(lines)
+    for line in lines:
+        print(line)
+    # 删除中英文标点
+    for index, line in enumerate(lines):
+        result = p.del_num_word(p.del_special_symbol(p.del_english_word(line)))
+        lines[index] = result
+
+    for line in lines:
+        print(line)
+    lines.pop()
+
