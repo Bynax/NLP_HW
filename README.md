@@ -9,5 +9,7 @@
     - model:HMM
       - Parameter estimate:MLE
       - Decode:viterbi algorithm
+  - Evaluate: (0.7784937575513492, 0.7972449063763095, 0.7877577634689054)
+    - 
 - POS
 - NER
