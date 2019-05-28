@@ -9,9 +9,9 @@
     - model:HMM
       - Parameter estimate:MLE
       - Decode:viterbi algorithm
-  - Evaluate:
-        - Accuracy: 0.7784937575513492
-        - Recall: 0.7972449063763095,
-        - F1_score: 0.7877577634689054
+    - Evaluate:
+      - Accuracy: 0.7784937575513492
+      - Recall: 0.7972449063763095
+      - F1_score: 0.7877577634689054
 - POS
 - NER
