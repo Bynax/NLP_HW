@@ -4,6 +4,10 @@
 import math
 import os
 import numpy as np
+from collections import Counter
+from scipy.optimize import curve_fit
+import matplotlib.pyplot as plt
+
 
 
 class Model(object):
@@ -71,8 +75,8 @@ class Model(object):
             b[2][ord(token[n - 1])] += 1
             for i in range(1, n - 1):
                 b[1][ord(token[i])] += 1
-        b = b + 0.027
-        print(b[:, ord('表')])
+        # b = b + 0.027
+        b = cls.__smoothing(b)
         # 正则化
         cls.__log_normalize(pi)
         for i in range(4):
@@ -200,9 +204,72 @@ class Model(object):
         decode = cls.__viterbi(pi, A, B, data)
         cls.__segment(result_path, data, decode)
 
+    @classmethod
+    def __smoothing(cls, b):
+        """
+        将指定的B矩阵经过平滑后返回
+        :param B: 待平滑的矩阵
+        :return:平滑后的矩阵
+        """
+        # print("counter:{}".format(Counter(b.sum(axis=0)).most_common(20)))
+        words_frequency = b.sum(axis=0)
+        most_common40 = Counter(words_frequency).most_common()
+        print(most_common40[-50])
+        dict_most_common = {}
+        for item in most_common40:
+            dict_most_common[item[0]] = item[1]
+        return cls.__good_turing(b, dict_most_common, 70, words_frequency)
+
+    @staticmethod
+    def __good_turing(b, dict_most_common, threshold, words_frequency):
+        """
+        使用good_turing平滑
+        :param b: HMM中的B参数矩阵
+        :param dict_most_common: 重新调整权重后得到的各个gram对应的频率，形如(2，6555536)表示出现2次的共有65536个gram
+        :param threshold:表示需要调整的threshold 防止gap的出现
+        :param words_frequency:字符频率列表，表示位置对应的unicode编码中汉字出现的频率
+        :return: b:经过调整权重后的B矩阵
+        """
+        # 重新调整权重
+        # for item in dict_most_common.items():
+        #     print("{}:{}".format(item[0], item[1]))
+        for i in range(threshold):
+            dict_most_common[i] = (i + 1) * dict_most_common[(i + 1)] / dict_most_common[i]
+
+        # print("-----"*20)
+        # for item in dict_most_common.items():
+        #     print("{}:{}".format(item[0], item[1]))
+
+        # 重新调整b矩阵
+        for word_index, word_frequency in enumerate(words_frequency):
+
+            if word_frequency < threshold:  # 假设前面程序都正确，不会出现频率小于0的情况
+                if word_frequency == 0:  # 频次为0的情况特殊，其他的处理逻辑相同
+                    b[:, word_index] = dict_most_common[0] / 4
+                else:
+                    for i in range(4):
+                        b[i, word_index] = dict_most_common[word_frequency] * (b[i, word_index] / word_frequency)
+        return b
+
+
+def fun(x, a, b):
+    return a * (x ** b)
+
 
 if __name__ == '__main__':
-    b = [[0] * 2 for x in range(4)]
-    print(b)
-    c = np.zeros((4, 2))
-    print(c)
+    a = [ (2.0, 203), (3.0, 127), (5.0, 90), (4.0, 82), (6.0, 79), (11.0, 49), (7.0, 48),
+         (10.0, 46), (12.0, 45), (8.0, 43), (9.0, 39), (13.0, 37), (14.0, 36), (16.0, 31), (18.0, 26), (15.0, 25),
+         (27.0, 22), (28.0, 21)]
+    x = []
+    y = []
+    for aa in a:
+        x.append(aa[0])
+        y.append(aa[1])
+    popt,_ = curve_fit(fun,x,y)
+    plt.plot(x,y,"b-")
+    y2 = [fun(i, popt[0],popt[1]) for i in x]
+    plt.plot(x, y2, 'r--')
+    plt.show()
+    print(popt)
+
+
