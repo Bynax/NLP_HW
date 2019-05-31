@@ -92,7 +92,8 @@ class Evaluate(object):
         :param predict: 模型预测文本
         :return: 模型的accuracy/recall/F1_score
         """
-
+        print(len(reference.replace(" ", "")))
+        print(len(predict.replace(" ", "")))
         assert len(reference.replace(" ", "")) == len(predict.replace(" ", ""))  # 要比较的字符串除空格外字数要相等
         reference_list = reference.split(" ")
         predict_list = predict.split(" ")

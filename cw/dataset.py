@@ -4,10 +4,12 @@
 import re
 import string
 from zhon.hanzi import punctuation
+import os
 
 
 class Preprocess(object):
     """数据集预处理"""
+    TAGS = ['b', 'm', 'e', 's']
 
     # 用来处理数据的正则表达式
     DIGIT_RE = re.compile(r'\d+')
@@ -26,7 +28,8 @@ class Preprocess(object):
             if is_read_lines:
                 lines = [line.strip() for line in file]
             else:
-                lines = file.read().replace("  ", " ")
+                lines = file.read().replace("\s+", " ")
+                # lines = " ".join(file.read()) # 一个空格替换多个空格
         return lines
 
     @staticmethod
@@ -76,3 +79,49 @@ class Preprocess(object):
             result = cls.__del_num_word(cls.__del_special_symbol(cls.__del_english_word(line)))
             lines[index] = result
         return lines
+
+    @classmethod
+    def preprocess_data(cls, data_path, dest_path):
+        """
+        将文本预处理为 word tag 如 表 S的格式
+        :param data_path: 源数据路径
+        :param dest_path: 处理后的输出路径
+        :return:
+        """
+        with open(data_path, "r", encoding="utf-8")as f:
+            lines = f.readlines()
+        tags = []  # 存放词对应的标记
+        split_words = []
+        for line in lines:
+            words = line.strip().split(" ")
+            for word in words:
+                word_length = len(word.strip())
+                if word_length == 0:
+                    continue
+                if word_length == 1:
+                    tags.append(cls.TAGS[3])
+                    split_words.append(word)
+                elif word_length == 2:
+                    tags.append(cls.TAGS[0])
+                    tags.append(cls.TAGS[2])
+                    split_words.append(word[0])
+                    split_words.append(word[1])
+                else:
+                    tags.append(cls.TAGS[0])
+                    split_words.append(word[0])
+                    for i in range(1, word_length - 1):
+                        tags.append(cls.TAGS[1])
+                        split_words.append(word[i])
+                    tags.append(cls.TAGS[2])
+                    split_words.append(word[word_length - 1])
+            assert len(split_words) == len(tags)
+            with open(dest_path, "a+", encoding="utf-8")as f:
+                for index, split_word in enumerate(split_words):
+                    f.write("{}/{} ".format(split_word, tags[index]))
+                split_words.clear()
+                tags.clear()
+                f.write("\n")
+
+
+if __name__ == '__main__':
+    Preprocess.preprocess_data("../data/trainset/train_cws.txt","train.txt")

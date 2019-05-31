@@ -6,8 +6,6 @@ import os
 import numpy as np
 from collections import Counter
 from scipy.optimize import curve_fit
-import matplotlib.pyplot as plt
-
 
 
 class Model(object):
@@ -15,6 +13,11 @@ class Model(object):
 
     @staticmethod
     def __log_normalize(a):
+        """
+        log normalization
+        :param a: 需要进行normalization的列表
+        :return:
+        """
         s = 0
         for x in a:
             s += x
@@ -54,13 +57,11 @@ class Model(object):
             if n == 1:
                 pi[3] += 1
                 a[last_q][3] += 1  # 上一个词的结束(last_q)到当前状态(3S)
-                b[3][ord(token[0])] += 1
+                b[3][ord(token)] += 1
                 last_q = 3
                 continue
             # 初始向量
             pi[0] += 1
-            pi[2] += 1
-            pi[1] += (n - 2)
             # 转移矩阵
             a[last_q][0] += 1
             last_q = 2
@@ -75,8 +76,8 @@ class Model(object):
             b[2][ord(token[n - 1])] += 1
             for i in range(1, n - 1):
                 b[1][ord(token[i])] += 1
-        # b = b + 0.027
-        b = cls.__smoothing(b)
+        b = b + 0.027
+        # b = cls.__smoothing(b)
         # 正则化
         cls.__log_normalize(pi)
         for i in range(4):
@@ -213,32 +214,34 @@ class Model(object):
         """
         # print("counter:{}".format(Counter(b.sum(axis=0)).most_common(20)))
         words_frequency = b.sum(axis=0)
-        most_common40 = Counter(words_frequency).most_common()
-        print(most_common40[-50])
-        dict_most_common = {}
-        for item in most_common40:
-            dict_most_common[item[0]] = item[1]
-        return cls.__good_turing(b, dict_most_common, 70, words_frequency)
+        return cls.__good_turing(b, 50, words_frequency)
 
-    @staticmethod
-    def __good_turing(b, dict_most_common, threshold, words_frequency):
+    @classmethod
+    def __good_turing(cls, b, threshold, words_frequency):
         """
         使用good_turing平滑
         :param b: HMM中的B参数矩阵
-        :param dict_most_common: 重新调整权重后得到的各个gram对应的频率，形如(2，6555536)表示出现2次的共有65536个gram
         :param threshold:表示需要调整的threshold 防止gap的出现
         :param words_frequency:字符频率列表，表示位置对应的unicode编码中汉字出现的频率
         :return: b:经过调整权重后的B矩阵
         """
+        most_common = Counter(words_frequency)
+
+        # 对于出现频率大于threshold的，使用solution2 拟合频次曲线
+        x_data = list(most_common.keys())[threshold:]
+        y_data = list(most_common.values())[threshold:]
+        assert len(x_data) == len(y_data)
+
+        popt, _ = curve_fit(cls.fun, x_data, y_data)
+        # y2 = [cls.fun(i, popt[0], popt[1]) for i in x_data]
+
+        # 对于出现频率小于threshold的，使用solution1，直接用i+1次数替换i
+        dict_most_common = {}
+        for item in most_common.most_common()[:threshold + 100]:
+            dict_most_common[item[0]] = item[1]
         # 重新调整权重
-        # for item in dict_most_common.items():
-        #     print("{}:{}".format(item[0], item[1]))
         for i in range(threshold):
             dict_most_common[i] = (i + 1) * dict_most_common[(i + 1)] / dict_most_common[i]
-
-        # print("-----"*20)
-        # for item in dict_most_common.items():
-        #     print("{}:{}".format(item[0], item[1]))
 
         # 重新调整b矩阵
         for word_index, word_frequency in enumerate(words_frequency):
@@ -249,27 +252,91 @@ class Model(object):
                 else:
                     for i in range(4):
                         b[i, word_index] = dict_most_common[word_frequency] * (b[i, word_index] / word_frequency)
+            else:
+                for i in range(4):
+                    b[i, word_index] = cls.fun(word_frequency, popt[0], popt[1]) * (b[i, word_index] / word_frequency)
         return b
 
+    @staticmethod
+    def fun(x, a, b):
+        return a * (x ** b)
 
-def fun(x, a, b):
-    return a * (x ** b)
+    @classmethod
+    def __mle_bigram(cls, tokens):
+        """
+        根据训练文本，计算hmm中的pi，A，B参数
+        :param tokens:词列表
+        :return:pi,a,b:对应hmm中所训练的三个参数
+        """
+        pi = np.zeros(4)  # npi[i]：i状态的个数
+        a = np.zeros((4, 4, 4))  # na[i][j][k]：前一个状态为i后一个状态为k时状态为j的个数
+        b = np.zeros((4, 65536, 4))  # nb[i][o][j]：当前状态为i下一个状态为j时转移到o字符的个数
+        # 开始训练
+        last_q = 2  # 上一个状态 为计算A矩阵方便
+        old_progress = 0
+        print('进度：')
+        for k, token in enumerate(tokens):
+            progress = float(k) / float(len(tokens))
+            if progress > old_progress + 0.1:
+                print('%.3f%%' % (progress * 100))
+                old_progress = progress
+            token = token.strip()
+            n = len(token)
+            next_q = 2
+            if n <= 0:
+                continue
+            if n == 1:
+                pi[3] += 1
+                a[last_q][3][next_q] += 1  # 上一个词的结束(last_q)到当前状态(3S)
+                b[3][ord(token)][next_q] += 1
+                last_q = 3
+                continue
+            # 初始向量
+            pi[0] += 1
+            # 转移矩阵
+            a[last_q][0][next_q] += 1
+            last_q = 2
+            if n == 2:
+                a[0][2][next_q] += 1
+            else:
+                a[0][1] += 1
+                a[1][1] += (n - 3)
+                a[1][2] += 1
+            # 发射矩阵
+            b[0][ord(token[0])][next_q] += 1
+            b[2][ord(token[n - 1])][next_q] += 1
+            for i in range(1, n - 1):
+                b[1][ord(token[i])][next_q] += 1
+        b = b + 0.027
+        cls.__log_normalize(pi)
+        for i in range(4):
+            cls.__log_normalize(a[i])
+            cls.__log_normalize(b[i])
+        return pi, a, b
 
-
-if __name__ == '__main__':
-    a = [ (2.0, 203), (3.0, 127), (5.0, 90), (4.0, 82), (6.0, 79), (11.0, 49), (7.0, 48),
-         (10.0, 46), (12.0, 45), (8.0, 43), (9.0, 39), (13.0, 37), (14.0, 36), (16.0, 31), (18.0, 26), (15.0, 25),
-         (27.0, 22), (28.0, 21)]
-    x = []
-    y = []
-    for aa in a:
-        x.append(aa[0])
-        y.append(aa[1])
-    popt,_ = curve_fit(fun,x,y)
-    plt.plot(x,y,"b-")
-    y2 = [fun(i, popt[0],popt[1]) for i in x]
-    plt.plot(x, y2, 'r--')
-    plt.show()
-    print(popt)
-
-
+    # @staticmethod
+    # def __viterbi_bigram(pi, A, B, o):
+    #     T = len(o)  # 观测序列
+    #     delta = np.array((T, 4))
+    #     pre = ((T, 4))  # 前一个状态   # pre[t][i]：t时刻的i状态，它的前一个状态是多少
+    #     for i in range(4):
+    #         delta[0][i] = pi[i] + B[i][ord(o[0])]
+    #     for t in range(1, T):
+    #         for i in range(4):
+    #             delta[t][i] = delta[t - 1][0] + A[0][i]
+    #             for j in range(1, 4):
+    #                 vj = delta[t - 1][j] + A[j][i]
+    #                 if delta[t][i] < vj:
+    #                     delta[t][i] = vj
+    #                     pre[t][i] = j
+    #             delta[t][i] += B[i][ord(o[t])]
+    #     decode = [-1 for t in range(T)]  # 解码：回溯查找最大路径
+    #     q = 0
+    #     for i in range(1, 4):
+    #         if delta[T - 1][i] > delta[T - 1][q]:
+    #             q = i
+    #     decode[T - 1] = q
+    #     for t in range(T - 2, -1, -1):
+    #         q = pre[t + 1][q]
+    #         decode[t] = q
+    #     return decode
