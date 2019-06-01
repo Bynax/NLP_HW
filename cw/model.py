@@ -287,7 +287,7 @@ class Model(object):
                 continue
             if n == 1:
                 pi[3] += 1
-                a[last_q][3][next_q] += 1  # 上一个词的结束(last_q)到当前状态(3S)
+                a[last_q][3][next_q] += 1  # 上一个词的结束(last_q)到当前状态(3S)，下个词的状态(next_q)
                 b[3][ord(token)][next_q] += 1
                 last_q = 3
                 continue
