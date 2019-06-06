@@ -12,7 +12,6 @@ test2_set = "../data/devset/test2.txt"
 para_dir = "./para"  # 参数存放位置
 result_dir = "./result"
 
-
 if __name__ == '__main__':
     # """-------------------train-----------------------"""
     train_tokens = preprocess.read_text_file("../data/trainset/train_cws.txt").split(" ")
