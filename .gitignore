@@ -2,5 +2,10 @@
 *.tmp
 /data
 /**/__pycache__
-/.idea
+/.idea/
 /cw/result/
+.gitignore
+.DS_Store
+/.DS_Store
+/cw/*.txt
+/__pycache__
